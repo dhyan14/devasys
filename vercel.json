@@ -3,10 +3,7 @@
   "builds": [
     {
       "src": "package.json",
-      "use": "@vercel/next",
-      "config": {
-        "nodeVersion": "22.x"
-      }
+      "use": "@vercel/next"
     }
   ],
   "routes": [
@@ -16,7 +13,12 @@
     }
   ],
   "env": {
-    "MONGODB_URI": "mongodb+srv://devloperasys:devloperasys@asys.6o7l3r1.mongodb.net/",
-    "NODE_ENV": "production"
+    "MONGODB_URI": "mongodb+srv://devloperasys:devloperasys@asys.6o7l3r1.mongodb.net/attendance-system"
+  },
+  "build": {
+    "env": {
+      "MONGODB_URI": "mongodb+srv://devloperasys:devloperasys@asys.6o7l3r1.mongodb.net/attendance-system",
+      "JWT_SECRET": "e654e574e8aa61f62a24b145ebad7fce36f17fbdf53120f91bf27434a4c7a2f9"
+    }
   }
 } 
