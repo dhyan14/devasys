@@ -68,8 +68,18 @@ export async function POST(req: Request) {
     await connectToDatabase();
 
     // Parse the request body
-    const { name, email, password, role, profilePicture, studentId, facultyIds, enrollmentNumber } =
-      await req.json();
+    const { 
+      name, 
+      email, 
+      password, 
+      role, 
+      profilePicture, 
+      studentId, 
+      facultyIds, 
+      enrollmentNumber,
+      department,
+      subjectName 
+    } = await req.json();
 
     // Check if all required fields are present
     if (!name || !email || !password || !role) {
@@ -96,7 +106,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate student ID if role is parent
+    // Role-specific validations
     if (role === 'parent' && !studentId) {
       return NextResponse.json(
         { error: 'Student ID is required for parent role.' },
@@ -104,7 +114,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate faculty IDs if provided
     if (facultyIds && !Array.isArray(facultyIds)) {
       return NextResponse.json(
         { error: 'Faculty IDs must be an array.' },
@@ -112,16 +121,24 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if enrollment number is provided for student role
-    if (role === 'student' && !enrollmentNumber) {
-      return NextResponse.json(
-        { error: 'Enrollment number is required for student role.' },
-        { status: 400 }
-      );
-    }
+    if (role === 'student') {
+      // Check enrollment number
+      if (!enrollmentNumber) {
+        return NextResponse.json(
+          { error: 'Enrollment number is required for student role.' },
+          { status: 400 }
+        );
+      }
 
-    // Check if enrollment number is unique for student role
-    if (role === 'student' && enrollmentNumber) {
+      // Check department
+      if (!department) {
+        return NextResponse.json(
+          { error: 'Department is required for student role.' },
+          { status: 400 }
+        );
+      }
+
+      // Check if enrollment number is unique
       const existingEnrollment = await User.findOne({ enrollmentNumber });
       if (existingEnrollment) {
         return NextResponse.json(
@@ -131,22 +148,54 @@ export async function POST(req: Request) {
       }
     }
 
+    if (role === 'faculty') {
+      // Check department
+      if (!department) {
+        return NextResponse.json(
+          { error: 'Department is required for faculty role.' },
+          { status: 400 }
+        );
+      }
+
+      // Check subject name
+      if (!subjectName) {
+        return NextResponse.json(
+          { error: 'Subject name is required for faculty role.' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Hash the password
     const hashedPassword = await hashPassword(password);
 
-    // Create a new user
-    const newUser = new User({
+    // Create a new user with appropriate fields based on role
+    const userData = {
       name,
       email,
       password: hashedPassword,
       role,
       profilePicture: profilePicture || '',
-      studentId: role === 'parent' ? studentId : undefined,
-      facultyIds: role === 'student' ? facultyIds : undefined,
-      enrollmentNumber: role === 'student' ? enrollmentNumber : undefined,
-    });
+    };
 
-    // Save the user to the database
+    // Add role-specific fields
+    if (role === 'parent') {
+      Object.assign(userData, { studentId });
+    } else if (role === 'student') {
+      Object.assign(userData, { 
+        facultyIds, 
+        enrollmentNumber,
+        department
+      });
+    } else if (role === 'faculty') {
+      Object.assign(userData, {
+        department,
+        subjectName
+      });
+    }
+
+    // Create and save the user
+    const newUser = new User(userData);
     await newUser.save();
 
     // Return the new user without the password
@@ -248,7 +297,18 @@ export async function PUT(request: NextRequest) {
 
     // Parse the request body
     const updateData = await request.json();
-    const { name, email, role, password, profilePicture, studentId, facultyIds, enrollmentNumber } = updateData;
+    const { 
+      name, 
+      email, 
+      role, 
+      password, 
+      profilePicture, 
+      studentId, 
+      facultyIds, 
+      enrollmentNumber,
+      department,
+      subjectName 
+    } = updateData;
 
     // Check if user exists
     const existingUser = await User.findById(userId);
@@ -286,6 +346,50 @@ export async function PUT(request: NextRequest) {
         );
       }
       updates.role = role;
+
+      // Role-specific validation and updates
+      if (role === 'student') {
+        // If changing to student role, enrollment number is required
+        if (!existingUser.enrollmentNumber && !enrollmentNumber) {
+          return NextResponse.json(
+            { error: 'Enrollment number is required for student role.' },
+            { status: 400 }
+          );
+        }
+
+        // If changing to student role, department is required
+        if (!existingUser.department && !department) {
+          return NextResponse.json(
+            { error: 'Department is required for student role.' },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (role === 'faculty') {
+        // If changing to faculty role, department is required
+        if (!existingUser.department && !department) {
+          return NextResponse.json(
+            { error: 'Department is required for faculty role.' },
+            { status: 400 }
+          );
+        }
+
+        // If changing to faculty role, subject name is required
+        if (!existingUser.subjectName && !subjectName) {
+          return NextResponse.json(
+            { error: 'Subject name is required for faculty role.' },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (role === 'parent' && !existingUser.studentId && !studentId) {
+        return NextResponse.json(
+          { error: 'Student ID is required for parent role.' },
+          { status: 400 }
+        );
+      }
     }
 
     if (password) {
@@ -297,11 +401,13 @@ export async function PUT(request: NextRequest) {
     }
 
     // Handle role-specific fields
-    if (role === 'parent' && studentId) {
-      updates.studentId = studentId;
+    if (role === 'parent' || existingUser.role === 'parent') {
+      if (studentId) {
+        updates.studentId = studentId;
+      }
     }
 
-    if (role === 'student') {
+    if (role === 'student' || existingUser.role === 'student') {
       if (facultyIds) {
         if (!Array.isArray(facultyIds)) {
           return NextResponse.json(
@@ -326,6 +432,20 @@ export async function PUT(request: NextRequest) {
           );
         }
         updates.enrollmentNumber = enrollmentNumber;
+      }
+
+      if (department) {
+        updates.department = department;
+      }
+    }
+
+    if (role === 'faculty' || existingUser.role === 'faculty') {
+      if (department) {
+        updates.department = department;
+      }
+      
+      if (subjectName) {
+        updates.subjectName = subjectName;
       }
     }
 

@@ -12,6 +12,8 @@ export interface IUser {
   studentId?: Schema.Types.ObjectId; // For parent role
   facultyIds?: Schema.Types.ObjectId[]; // For student role (assigned faculty advisors)
   enrollmentNumber?: string; // For student role
+  department?: string; // For student and faculty roles
+  subjectName?: string; // For faculty role
 }
 
 const userSchema = new Schema<IUser>(
@@ -47,6 +49,12 @@ const userSchema = new Schema<IUser>(
       ref: 'User',
     }],
     enrollmentNumber: {
+      type: String,
+    },
+    department: {
+      type: String,
+    },
+    subjectName: {
       type: String,
     },
   },

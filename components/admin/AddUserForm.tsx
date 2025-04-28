@@ -17,6 +17,8 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
     studentId: '',
     facultyIds: [] as string[],
     enrollmentNumber: '',
+    department: '',
+    subjectName: '',
   });
   
   const [students, setStudents] = useState<any[]>([]);
@@ -25,6 +27,22 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [fetchStatus, setFetchStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  
+  // List of departments for select options
+  const departments = [
+    'Computer Science',
+    'Electrical Engineering',
+    'Mechanical Engineering',
+    'Civil Engineering',
+    'Business Administration',
+    'Arts & Humanities',
+    'Medicine',
+    'Law',
+    'Physics',
+    'Chemistry',
+    'Mathematics',
+    'Biology'
+  ];
   
   // Fetch students and faculty for relationships
   useEffect(() => {
@@ -93,10 +111,10 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to create user');
+        throw new Error(data.error || 'Failed to create user');
       }
       
-      console.log("User created successfully in MongoDB:", data.user);
+      console.log("User created successfully in MongoDB:", data);
       setSuccess(`User ${formData.name} (${formData.email}) was successfully added to MongoDB!`);
       
       // Reset form and notify parent component
@@ -109,6 +127,8 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
           studentId: '',
           facultyIds: [],
           enrollmentNumber: '',
+          department: '',
+          subjectName: '',
         });
         
         onSuccess();
@@ -125,7 +145,7 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
+      <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Add New User</h2>
           <button 
@@ -227,6 +247,26 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
             <>
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Department
+                </label>
+                <select
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  required
+                >
+                  <option value="">Select Department</option>
+                  {departments.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
                   Enrollment Number
                 </label>
                 <input
@@ -259,6 +299,45 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd key to select multiple faculty advisors</p>
+              </div>
+            </>
+          )}
+          
+          {formData.role === 'faculty' && (
+            <>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Department
+                </label>
+                <select
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  required
+                >
+                  <option value="">Select Department</option>
+                  {departments.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Subject Name
+                </label>
+                <input
+                  type="text"
+                  name="subjectName"
+                  value={formData.subjectName}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  required
+                  placeholder="e.g., Artificial Intelligence"
+                />
               </div>
             </>
           )}

@@ -14,6 +14,8 @@ interface IUser {
   studentId?: string;
   facultyIds?: string[];
   enrollmentNumber?: string;
+  department?: string; // For student and faculty roles
+  subjectName?: string; // For faculty role
 }
 
 interface FormData {
@@ -24,6 +26,8 @@ interface FormData {
   studentId: string;
   facultyIds: string[];
   enrollmentNumber: string;
+  department: string;
+  subjectName: string;
 }
 
 interface EditUserFormProps {
@@ -41,6 +45,8 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onClose, onSuccess })
     studentId: user.studentId?.toString() || '',
     facultyIds: (user.facultyIds || []).map(id => id.toString()),
     enrollmentNumber: user.enrollmentNumber || '',
+    department: user.department || '',
+    subjectName: user.subjectName || '',
   });
   
   const [students, setStudents] = useState<IUser[]>([]);
@@ -49,6 +55,22 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onClose, onSuccess })
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [fetchStatus, setFetchStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  
+  // List of departments for select options
+  const departments = [
+    'Computer Science',
+    'Electrical Engineering',
+    'Mechanical Engineering',
+    'Civil Engineering',
+    'Business Administration',
+    'Arts & Humanities',
+    'Medicine',
+    'Law',
+    'Physics',
+    'Chemistry',
+    'Mathematics',
+    'Biology'
+  ];
   
   // Fetch students and faculty for relationships
   useEffect(() => {
@@ -167,7 +189,7 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onClose, onSuccess })
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
+      <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Edit User</h2>
           <button 
@@ -269,6 +291,26 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onClose, onSuccess })
             <>
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Department
+                </label>
+                <select
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  required
+                >
+                  <option value="">Select Department</option>
+                  {departments.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
                   Enrollment Number
                 </label>
                 <input
@@ -301,6 +343,45 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onClose, onSuccess })
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd key to select multiple faculty advisors</p>
+              </div>
+            </>
+          )}
+          
+          {formData.role === 'faculty' && (
+            <>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Department
+                </label>
+                <select
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  required
+                >
+                  <option value="">Select Department</option>
+                  {departments.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Subject Name
+                </label>
+                <input
+                  type="text"
+                  name="subjectName"
+                  value={formData.subjectName}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  required
+                  placeholder="e.g., Artificial Intelligence"
+                />
               </div>
             </>
           )}
