@@ -3,6 +3,8 @@ import { connectToDatabase } from '@/lib/db';
 import { Attendance } from '@/models/Attendance';
 import { getUserFromRequest } from '@/lib/auth';
 
+export const runtime = 'nodejs';
+
 // Get attendance records (with filtering)
 export async function GET(request: NextRequest) {
   try {

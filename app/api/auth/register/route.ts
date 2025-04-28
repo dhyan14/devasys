@@ -3,6 +3,8 @@ import { connectToDatabase } from '@/lib/db';
 import { User } from '@/models/User';
 import { hashPassword } from '@/lib/auth';
 
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     const { name, email, password, role, studentId, facultyId } = await request.json();
