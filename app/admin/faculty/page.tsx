@@ -1,13 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FiEdit2, FiTrash2, FiUserPlus, FiSearch } from 'react-icons/fi';
 import { toast, Toaster } from 'react-hot-toast';
 
+// Define a faculty interface
+interface Faculty {
+  _id: string;
+  name: string;
+  email: string;
+  subjects: string[];
+}
+
 // Mocked data for initial development
 // Replace with actual API calls in production
-const FACULTY_DATA = [
+const FACULTY_DATA: Faculty[] = [
   { _id: '1', name: 'Dr. John Smith', email: 'john.smith@example.com', subjects: ['Mathematics', 'Physics'] },
   { _id: '2', name: 'Prof. Jane Doe', email: 'jane.doe@example.com', subjects: ['Chemistry', 'Biology'] },
   { _id: '3', name: 'Dr. Michael Johnson', email: 'michael.johnson@example.com', subjects: ['Computer Science'] },
@@ -16,8 +24,8 @@ const FACULTY_DATA = [
 ];
 
 export default function FacultyManagementPage() {
-  const [faculty, setFaculty] = useState<any[]>([]);
-  const [filteredFaculty, setFilteredFaculty] = useState<any[]>([]);
+  const [faculty, setFaculty] = useState([] as Faculty[]);
+  const [filteredFaculty, setFilteredFaculty] = useState([] as Faculty[]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   
@@ -45,7 +53,7 @@ export default function FacultyManagementPage() {
       teacher => 
         teacher.name.toLowerCase().includes(term) || 
         teacher.email.toLowerCase().includes(term) ||
-        teacher.subjects.some((subject: string) => subject.toLowerCase().includes(term))
+        teacher.subjects.some(subject => subject.toLowerCase().includes(term))
     );
     
     setFilteredFaculty(filtered);

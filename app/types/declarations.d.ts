@@ -3,6 +3,8 @@
 declare module 'react';
 declare module 'react-datepicker';
 declare module 'react-icons/*';
+declare module 'next/link';
+declare module 'react-hot-toast';
 
 // Node.js global declarations
 declare namespace NodeJS {
