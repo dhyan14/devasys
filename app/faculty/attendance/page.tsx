@@ -6,47 +6,99 @@ import "react-datepicker/dist/react-datepicker.css";
 import { toast, Toaster } from 'react-hot-toast';
 import { FiCalendar, FiCheck, FiX, FiSave } from 'react-icons/fi';
 
-// Mocked data for initial development
-// Replace with actual API calls in production
-const SUBJECTS = [
-  { _id: '1', name: 'Mathematics', code: 'MATH101' },
-  { _id: '2', name: 'Physics', code: 'PHYS101' },
-  { _id: '3', name: 'Computer Science', code: 'CS101' },
-];
+interface Student {
+  _id: string;
+  name: string;
+  email: string;
+  enrollmentNumber?: string;
+  department?: string;
+}
 
-const STUDENTS = [
-  { _id: '1', name: 'John Doe', email: 'john@example.com' },
-  { _id: '2', name: 'Jane Smith', email: 'jane@example.com' },
-  { _id: '3', name: 'Alice Johnson', email: 'alice@example.com' },
-  { _id: '4', name: 'Bob Brown', email: 'bob@example.com' },
-  { _id: '5', name: 'Charlie Davis', email: 'charlie@example.com' },
-];
+interface Subject {
+  _id: string;
+  name: string;
+  code: string;
+}
 
 export default function FacultyAttendance() {
   const [date, setDate] = useState<Date | null>(new Date());
   const [selectedSubject, setSelectedSubject] = useState('');
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(false);
-  const [students, setStudents] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<{[key: string]: 'present' | 'absent' | 'leave'}>({});
   const [remarks, setRemarks] = useState<{[key: string]: string}>({});
   const [savingAttendance, setSavingAttendance] = useState(false);
+  
+  // Load subjects when component mounts
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        // In a real app, fetch subjects from API
+        const response = await fetch('/api/faculty/subjects');
+        
+        if (response.ok) {
+          const data = await response.json();
+          setSubjects(data.subjects);
+        } else {
+          // Fallback to sample data if API fails
+          setSubjects([
+            { _id: '1', name: 'Mathematics', code: 'MATH101' },
+            { _id: '2', name: 'Physics', code: 'PHYS101' },
+            { _id: '3', name: 'Computer Science', code: 'CS101' },
+          ]);
+        }
+      } catch (error) {
+        console.error('Error fetching subjects:', error);
+        // Fallback to sample data
+        setSubjects([
+          { _id: '1', name: 'Mathematics', code: 'MATH101' },
+          { _id: '2', name: 'Physics', code: 'PHYS101' },
+          { _id: '3', name: 'Computer Science', code: 'CS101' },
+        ]);
+      } finally {
+        setLoadingSubjects(false);
+      }
+    };
+
+    fetchSubjects();
+  }, []);
   
   // Load students when subject is selected
   useEffect(() => {
     if (selectedSubject) {
       setLoadingStudents(true);
-      // Simulate API call to get students for a subject
-      setTimeout(() => {
-        setStudents(STUDENTS);
-        setLoadingStudents(false);
-        
-        // Initialize attendance status
-        const initialAttendance: {[key: string]: 'present' | 'absent' | 'leave'} = {};
-        STUDENTS.forEach(student => {
-          initialAttendance[student._id] = 'present';
-        });
-        setAttendance(initialAttendance);
-      }, 500);
+      
+      const fetchStudents = async () => {
+        try {
+          // In a real app, fetch students for this subject
+          const response = await fetch(`/api/faculty/students?subjectId=${selectedSubject}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            setStudents(data.students);
+            
+            // Initialize attendance status
+            const initialAttendance: {[key: string]: 'present' | 'absent' | 'leave'} = {};
+            data.students.forEach((student: Student) => {
+              initialAttendance[student._id] = 'present';
+            });
+            setAttendance(initialAttendance);
+          } else {
+            toast.error('Failed to load students');
+            setStudents([]);
+          }
+        } catch (error) {
+          console.error('Error fetching students:', error);
+          toast.error('Error loading students');
+          setStudents([]);
+        } finally {
+          setLoadingStudents(false);
+        }
+      };
+
+      fetchStudents();
     } else {
       setStudents([]);
       setAttendance({});
@@ -85,23 +137,25 @@ export default function FacultyAttendance() {
     }));
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In a real app, make actual API call
+      const response = await fetch('/api/faculty/attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          date: date.toISOString(),
+          subjectId: selectedSubject,
+          records
+        }),
+      });
       
-      // In production, make actual API call
-      // const response = await fetch('/api/attendance', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     date: date.toISOString(),
-      //     subjectId: selectedSubject,
-      //     records
-      //   }),
-      // });
-      
-      toast.success('Attendance saved successfully');
+      if (response.ok) {
+        toast.success('Attendance saved successfully');
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to save attendance');
+      }
     } catch (error) {
       console.error('Error saving attendance:', error);
       toast.error('Failed to save attendance');
@@ -142,9 +196,10 @@ export default function FacultyAttendance() {
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
               className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary focus:border-primary"
+              disabled={loadingSubjects}
             >
               <option value="">Select Subject</option>
-              {SUBJECTS.map(subject => (
+              {subjects.map(subject => (
                 <option key={subject._id} value={subject._id}>
                   {subject.name} ({subject.code})
                 </option>
@@ -155,12 +210,15 @@ export default function FacultyAttendance() {
       </div>
       
       {/* Student Attendance List */}
-      {selectedSubject && (
+      {selectedSubject ? (
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Student Attendance</h2>
           
           {loadingStudents ? (
-            <div className="text-center py-8">Loading students...</div>
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4">Loading students...</p>
+            </div>
           ) : students.length > 0 ? (
             <>
               <div className="overflow-x-auto">
@@ -186,6 +244,9 @@ export default function FacultyAttendance() {
                             <div>
                               <div className="text-sm font-medium text-gray-900">{student.name}</div>
                               <div className="text-sm text-gray-500">{student.email}</div>
+                              {student.enrollmentNumber && (
+                                <div className="text-xs text-gray-400">ID: {student.enrollmentNumber}</div>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -237,7 +298,10 @@ export default function FacultyAttendance() {
                   className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
                   {savingAttendance ? (
-                    <>Saving...</>
+                    <>
+                      <div className="animate-spin mr-2 h-4 w-4 border-2 border-white rounded-full border-t-transparent"></div>
+                      Saving...
+                    </>
                   ) : (
                     <>
                       <FiSave className="mr-2 h-4 w-4" />
@@ -252,6 +316,10 @@ export default function FacultyAttendance() {
               No students found for this subject
             </div>
           )}
+        </div>
+      ) : (
+        <div className="bg-white shadow rounded-lg p-6 text-center text-gray-500">
+          Please select a subject to view students
         </div>
       )}
     </div>
