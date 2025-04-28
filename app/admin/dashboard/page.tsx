@@ -2,17 +2,55 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FiUser, FiUsers, FiCalendar, FiBook, FiSettings } from 'react-icons/fi';
+import { FiUser, FiUsers, FiCalendar, FiBook, FiSettings, FiPlus } from 'react-icons/fi';
+import AddUserForm from '@/components/admin/AddUserForm';
 
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalStudents: 0,
+    facultyMembers: 0,
+    totalCourses: 36, // Mocked data for now
+    activeDepartments: 12, // Mocked data for now
+  });
+
+  // Fetch users and calculate stats
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/users');
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users);
+        
+        // Calculate stats
+        const students = data.users.filter((user: any) => user.role === 'student');
+        const faculty = data.users.filter((user: any) => user.role === 'faculty');
+        
+        setDashboardStats({
+          totalStudents: students.length,
+          facultyMembers: faculty.length,
+          totalCourses: 36, // Mocked data for now
+          activeDepartments: 12, // Mocked data for now
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    }
+  };
 
   useEffect(() => {
     // Simulate API loading
-    setTimeout(() => {
+    setTimeout(async () => {
+      await fetchUsers();
       setLoading(false);
     }, 800);
   }, []);
+
+  const handleAddUserSuccess = () => {
+    fetchUsers();
+  };
 
   if (loading) {
     return (
@@ -64,7 +102,7 @@ export default function AdminDashboardPage() {
             </div>
             <div className="ml-4">
               <h2 className="text-gray-600 text-sm font-medium">Total Students</h2>
-              <p className="text-2xl font-bold text-gray-900">853</p>
+              <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalStudents}</p>
             </div>
           </div>
         </div>
@@ -76,7 +114,7 @@ export default function AdminDashboardPage() {
             </div>
             <div className="ml-4">
               <h2 className="text-gray-600 text-sm font-medium">Faculty Members</h2>
-              <p className="text-2xl font-bold text-gray-900">48</p>
+              <p className="text-2xl font-bold text-gray-900">{dashboardStats.facultyMembers}</p>
             </div>
           </div>
         </div>
@@ -88,7 +126,7 @@ export default function AdminDashboardPage() {
             </div>
             <div className="ml-4">
               <h2 className="text-gray-600 text-sm font-medium">Total Courses</h2>
-              <p className="text-2xl font-bold text-gray-900">36</p>
+              <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalCourses}</p>
             </div>
           </div>
         </div>
@@ -100,7 +138,7 @@ export default function AdminDashboardPage() {
             </div>
             <div className="ml-4">
               <h2 className="text-gray-600 text-sm font-medium">Active Departments</h2>
-              <p className="text-2xl font-bold text-gray-900">12</p>
+              <p className="text-2xl font-bold text-gray-900">{dashboardStats.activeDepartments}</p>
             </div>
           </div>
         </div>
@@ -112,9 +150,18 @@ export default function AdminDashboardPage() {
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <h2 className="text-lg font-semibold">User Management</h2>
-            <Link href="/admin/users" className="text-primary text-sm hover:underline">
-              View All
-            </Link>
+            <div className="flex items-center">
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="flex items-center text-primary hover:text-primary-dark mr-4"
+              >
+                <FiPlus className="mr-1" />
+                <span>Add User</span>
+              </button>
+              <Link href="/admin/users" className="text-primary text-sm hover:underline">
+                View All
+              </Link>
+            </div>
           </div>
           
           <div className="overflow-x-auto">
@@ -128,31 +175,31 @@ export default function AdminDashboardPage() {
                     Role
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Email
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {[
-                  { id: 1, name: 'John Smith', role: 'Faculty', status: 'Active' },
-                  { id: 2, name: 'Sarah Johnson', role: 'Faculty', status: 'Active' },
-                  { id: 3, name: 'Robert Brown', role: 'Student', status: 'Active' },
-                  { id: 4, name: 'Emily Davis', role: 'Student', status: 'Inactive' },
-                  { id: 5, name: 'Michael Wilson', role: 'Parent', status: 'Active' }
-                ].map((user) => (
-                  <tr key={user.id}>
+                {users.slice(0, 5).map((user) => (
+                  <tr key={user._id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{user.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{user.role}</div>
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        user.role === 'admin' 
+                          ? 'bg-purple-100 text-purple-800'
+                          : user.role === 'faculty'
+                          ? 'bg-blue-100 text-blue-800'
+                          : user.role === 'student'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {user.status}
-                      </span>
+                      <div className="text-sm text-gray-500">{user.email}</div>
                     </td>
                   </tr>
                 ))}
@@ -217,6 +264,14 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+      
+      {/* Add User Modal */}
+      {showAddForm && (
+        <AddUserForm 
+          onClose={() => setShowAddForm(false)}
+          onSuccess={handleAddUserSuccess}
+        />
+      )}
     </div>
   );
 } 
