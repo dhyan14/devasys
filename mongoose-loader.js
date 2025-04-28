@@ -4,7 +4,10 @@
 // Skip in edge runtime - handle different ways to detect EdgeRuntime
 let isEdgeRuntime = false;
 try {
-  isEdgeRuntime = typeof EdgeRuntime !== 'undefined';
+  // Check for the Edge Runtime environment
+  isEdgeRuntime = typeof process !== 'undefined' && 
+                 process.env.NEXT_RUNTIME === 'edge' || 
+                 typeof EdgeRuntime !== 'undefined';
 } catch (e) {
   // EdgeRuntime is not defined, which means we're not in an Edge environment
 }
