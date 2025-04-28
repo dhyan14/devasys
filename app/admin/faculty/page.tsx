@@ -50,7 +50,7 @@ export default function FacultyManagementPage() {
     
     const term = searchTerm.toLowerCase();
     const filtered = faculty.filter(
-      teacher => 
+      (teacher: Faculty) => 
         teacher.name.toLowerCase().includes(term) || 
         teacher.email.toLowerCase().includes(term) ||
         teacher.subjects.some(subject => subject.toLowerCase().includes(term))
@@ -66,7 +66,7 @@ export default function FacultyManagementPage() {
       // await fetch(`/api/faculty/${id}`, { method: 'DELETE' });
       
       // Update local state
-      const updatedFaculty = faculty.filter(teacher => teacher._id !== id);
+      const updatedFaculty = faculty.filter((teacher: Faculty) => teacher._id !== id);
       setFaculty(updatedFaculty);
       setFilteredFaculty(updatedFaculty);
       
@@ -97,7 +97,7 @@ export default function FacultyManagementPage() {
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-primary focus:border-primary sm:text-sm"
             placeholder="Search faculty by name, email or subject..."
           />
