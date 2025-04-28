@@ -55,9 +55,11 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// See https://nextjs.org/docs/app/building-your-application/routing/middleware
+// Segment config to prevent middleware from running on API routes
 export const config = {
   matcher: [
+    // Exclude all API routes from middleware
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
     '/dashboard/:path*',
     '/admin/:path*',
     '/faculty/:path*',
@@ -65,6 +67,5 @@ export const config = {
     '/parent/:path*',
     '/login',
     '/register',
-    '/api/:path*',
   ],
 }; 

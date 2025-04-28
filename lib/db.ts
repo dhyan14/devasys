@@ -1,11 +1,14 @@
-import mongoose from 'mongoose';
+// Use a dynamic import for mongoose in Node.js context
+let mongoose: any;
 
+// Explicitly set Node.js runtime
 export const runtime = 'nodejs';
 
+// This will be initialized in connectToDatabase
 declare global {
   var mongoose: {
-    conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
+    conn: any | null;
+    promise: Promise<any> | null;
   };
 }
 
@@ -23,7 +26,10 @@ export async function connectToDatabase() {
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI).then((mongoose) => {
+    // Dynamic import of mongoose only when needed
+    mongoose = (await import('mongoose')).default;
+    
+    cached.promise = mongoose.connect(MONGODB_URI).then((mongoose: any) => {
       return mongoose;
     });
   }

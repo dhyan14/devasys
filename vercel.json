@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "package.json",
-      "use": "@vercel/next"
+      "use": "@vercel/next",
+      "config": {
+        "nodeVersion": "18.x"
+      }
     }
   ],
   "routes": [
@@ -13,6 +16,7 @@
     }
   ],
   "env": {
-    "MONGODB_URI": "mongodb+srv://devloperasys:devloperasys@asys.6o7l3r1.mongodb.net/"
+    "MONGODB_URI": "mongodb+srv://devloperasys:devloperasys@asys.6o7l3r1.mongodb.net/",
+    "NODE_ENV": "production"
   }
 } 
