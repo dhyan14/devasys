@@ -5,7 +5,8 @@ const nextConfig = {
     MONGODB_URI: process.env.MONGODB_URI,
   },
   experimental: {
-    serverComponentsExternalPackages: ['mongoose', 'bcryptjs', 'jose']
+    serverComponentsExternalPackages: ['mongoose', 'bcryptjs', 'jose'],
+    runtime: 'nodejs'
   },
   serverRuntimeConfig: {
     // Will only be available on the server side
