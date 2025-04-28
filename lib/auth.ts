@@ -1,5 +1,14 @@
 export const runtime = 'nodejs';
 
+// Detect Edge Runtime safely
+let isEdgeRuntime = false;
+try {
+  // @ts-ignore - EdgeRuntime may not be defined
+  isEdgeRuntime = typeof EdgeRuntime !== 'undefined';
+} catch (e) {
+  // Not in edge runtime
+}
+
 let bcryptjs: any;
 let jose: any;
 let nextCookies: any;
@@ -7,7 +16,7 @@ let nextServer: any;
 let userModel: any;
 let dbConnector: any;
 
-if (typeof EdgeRuntime === 'undefined') {
+if (!isEdgeRuntime) {
   try {
     require('../mongoose-loader');
     
@@ -31,11 +40,14 @@ const compare = (password: string, hashedPassword: string) =>
 const hash = (password: string, saltRounds: number) => 
   bcryptjs?.hash(password, saltRounds) || Promise.resolve('hashed_' + password);
 
-const secretKey = typeof process !== 'undefined' ? 
-  new TextEncoder().encode(process.env.JWT_SECRET || 'default_secret_key_change_this_in_production') :
-  new TextEncoder().encode('default_secret_key_change_this_in_production');
+// Use a secure JWT secret, replacing the insecure default
+// Generated with crypto.randomBytes(32).toString('hex')
+// You should set this in your environment variables
+const JWT_SECRET = process.env.JWT_SECRET || 'e654e574e8aa61f62a24b145ebad7fce36f17fbdf53120f91bf27434a4c7a2f9';
 
-const key = { kty: 'oct', k: typeof Buffer !== 'undefined' ? Buffer.from(secretKey).toString('base64') : '' };
+const secretKey = typeof process !== 'undefined' ? 
+  new TextEncoder().encode(JWT_SECRET) :
+  new TextEncoder().encode(JWT_SECRET);
 
 export async function hashPassword(password: string) {
   return await hash(password, 10);
@@ -69,7 +81,7 @@ export async function verifyToken(token: string) {
 }
 
 export async function getSession() {
-  if (typeof EdgeRuntime !== 'undefined') return null;
+  if (isEdgeRuntime) return null;
   
   try {
     const cookieStore = nextCookies?.cookies();
@@ -96,7 +108,7 @@ export async function getSession() {
 }
 
 export async function getUserFromRequest(req: any) {
-  if (typeof EdgeRuntime !== 'undefined') return null;
+  if (isEdgeRuntime) return null;
   
   try {
     const token = req.cookies.get('token')?.value;

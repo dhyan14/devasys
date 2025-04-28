@@ -4,8 +4,17 @@ export const runtime = 'nodejs';
 // Only load mongoose in Node.js context to prevent Edge Runtime errors
 let mongoose: any;
 
-// This check prevents edge runtime from loading mongoose
-if (typeof EdgeRuntime === 'undefined') {
+// Check if we're in an Edge Runtime
+let isEdgeRuntime = false;
+try {
+  // @ts-ignore - EdgeRuntime may not be defined in all environments
+  isEdgeRuntime = typeof EdgeRuntime !== 'undefined';
+} catch (e) {
+  // Not in edge runtime
+}
+
+// Only import mongoose in Node.js context
+if (!isEdgeRuntime) {
   try {
     // Load the mongoose-loader first to ensure environment is ready
     require('../mongoose-loader');
@@ -33,7 +42,8 @@ declare global {
   var mongoose: MongooseCache | undefined;
 }
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://devloperasys:devloperasys@asys.6o7l3r1.mongodb.net/';
+// Use MongoDB Atlas URI for deployment, fallback to local for development
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://devloperasys:devloperasys@asys.6o7l3r1.mongodb.net/attendance-system';
 
 // Initialize the cached connection
 // This will be skipped in Edge Runtime environments
@@ -47,7 +57,7 @@ if (typeof global !== 'undefined') {
 
 export async function connectToDatabase() {
   // Only run in Node.js environment
-  if (typeof EdgeRuntime !== 'undefined') {
+  if (isEdgeRuntime) {
     console.warn('Attempted to connect to database from Edge Runtime');
     return null;
   }
@@ -56,11 +66,30 @@ export async function connectToDatabase() {
     return cached.conn;
   }
 
+  console.log('Connecting to MongoDB at', MONGODB_URI.replace(/\/\/([^:]+):[^@]+@/, '//***:***@')); // Hide credentials in logs
+
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI).then((mongoose: any) => {
-      return mongoose;
-    });
+    const opts = {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    };
+
+    cached.promise = mongoose.connect(MONGODB_URI, opts)
+      .then((mongoose: any) => {
+        console.log('MongoDB connected successfully');
+        return mongoose;
+      })
+      .catch((err: any) => {
+        console.error('MongoDB connection error:', err);
+        throw err;
+      });
   }
-  cached.conn = await cached.promise;
-  return cached.conn;
+
+  try {
+    cached.conn = await cached.promise;
+    return cached.conn;
+  } catch (e) {
+    cached.promise = null;
+    throw e;
+  }
 } 

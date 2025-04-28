@@ -47,8 +47,44 @@ interface ResultItem {
 
 export async function GET(request: NextRequest) {
   try {
-    // Connect to the database
-    await connectToDatabase();
+    console.log("Starting seed process...");
+    console.log("Environment:", process.env.NODE_ENV);
+    
+    // Try to connect to the database
+    console.log("Connecting to MongoDB...");
+    try {
+      const conn = await connectToDatabase();
+      console.log("MongoDB connection result:", conn ? "Connected" : "Failed to connect");
+      
+      // Check Atlas connectivity
+      if (conn) {
+        try {
+          const admin = conn.connection.db.admin();
+          const info = await admin.serverInfo();
+          console.log("MongoDB Server Info:", {
+            version: info.version,
+            gitVersion: info.gitVersion
+          });
+        } catch (infoError) {
+          console.log("Could not retrieve MongoDB server info", infoError);
+        }
+      }
+    } catch (dbError) {
+      console.error("MongoDB connection error:", dbError);
+      return NextResponse.json({
+        message: 'Failed to connect to MongoDB',
+        error: String(dbError)
+      }, { status: 500 });
+    }
+    
+    console.log("Checking if User model is available...");
+    if (!User || typeof User.findOne !== 'function') {
+      console.error("User model is not properly defined:", User);
+      return NextResponse.json({
+        message: 'User model is not available',
+        error: 'Database models not initialized properly'
+      }, { status: 500 });
+    }
     
     // Clear existing users if needed (uncomment if you want to reset users)
     // await User.deleteMany({});
@@ -57,100 +93,137 @@ export async function GET(request: NextRequest) {
     let facultyUser: any = null;
     let studentUser: any = null;
 
+    console.log("Creating users...");
     // Create users in sequence
     for (const userData of demoUsers) {
-      // Check if user already exists
-      const existingUser = await User.findOne({ email: userData.email });
+      console.log(`Processing user: ${userData.email}`);
       
-      if (existingUser) {
-        results.push({ 
-          message: `User ${userData.email} already exists`,
-          user: {
-            id: existingUser._id,
-            name: existingUser.name,
-            email: existingUser.email,
-            role: existingUser.role,
+      // Check if user already exists
+      try {
+        const existingUser = await User.findOne({ email: userData.email });
+        
+        if (existingUser) {
+          console.log(`User ${userData.email} already exists`);
+          results.push({ 
+            message: `User ${userData.email} already exists`,
+            user: {
+              id: existingUser._id,
+              name: existingUser.name,
+              email: existingUser.email,
+              role: existingUser.role,
+            }
+          });
+          
+          // Store references for relationships
+          if (userData.role === 'faculty') {
+            facultyUser = existingUser;
+          } else if (userData.role === 'student') {
+            studentUser = existingUser;
           }
-        });
-        
-        // Store references for relationships
-        if (userData.role === 'faculty') {
-          facultyUser = existingUser;
-        } else if (userData.role === 'student') {
-          studentUser = existingUser;
+          
+          continue;
         }
-        
+      } catch (findError) {
+        console.error(`Error checking for existing user ${userData.email}:`, findError);
+        results.push({ 
+          message: `Error checking for existing user ${userData.email}: ${findError}`
+        });
         continue;
       }
 
-      // Set relationships if needed
-      if (userData.role === 'student' && facultyUser) {
-        userData.facultyId = facultyUser._id;
-      } else if (userData.role === 'parent' && studentUser) {
-        userData.studentId = studentUser._id;
-      }
-
-      // Hash password
-      const hashedPassword = await hashPassword(userData.password);
-
-      // Create user
-      const newUser = new User({
-        name: userData.name,
-        email: userData.email,
-        password: hashedPassword,
-        role: userData.role,
-        studentId: userData.studentId,
-        facultyId: userData.facultyId,
-      });
-
-      await newUser.save();
-
-      results.push({ 
-        message: `User ${userData.email} created successfully`,
-        user: {
-          id: newUser._id,
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
+      try {
+        // Set relationships if needed
+        if (userData.role === 'student' && facultyUser) {
+          userData.facultyId = facultyUser._id;
+        } else if (userData.role === 'parent' && studentUser) {
+          userData.studentId = studentUser._id;
         }
-      });
 
-      // Store references for relationships
-      if (userData.role === 'faculty') {
-        facultyUser = newUser;
-      } else if (userData.role === 'student') {
-        studentUser = newUser;
+        // Hash password
+        const hashedPassword = await hashPassword(userData.password);
+
+        // Create user
+        const newUser = new User({
+          name: userData.name,
+          email: userData.email,
+          password: hashedPassword,
+          role: userData.role,
+          studentId: userData.studentId,
+          facultyId: userData.facultyId,
+        });
+
+        console.log(`Saving new user: ${userData.email}`);
+        await newUser.save();
+        console.log(`User ${userData.email} created successfully`);
+
+        results.push({ 
+          message: `User ${userData.email} created successfully`,
+          user: {
+            id: newUser._id,
+            name: newUser.name,
+            email: newUser.email,
+            role: newUser.role,
+          }
+        });
+
+        // Store references for relationships
+        if (userData.role === 'faculty') {
+          facultyUser = newUser;
+        } else if (userData.role === 'student') {
+          studentUser = newUser;
+        }
+      } catch (createError) {
+        console.error(`Error creating user ${userData.email}:`, createError);
+        results.push({ 
+          message: `Error creating user ${userData.email}: ${createError}`
+        });
       }
     }
 
     // Update relationships if needed
     if (facultyUser && studentUser) {
-      const updatedStudent = await User.findByIdAndUpdate(
-        studentUser._id,
-        { facultyId: facultyUser._id },
-        { new: true }
-      );
-      
-      if (updatedStudent) {
-        results.push({ message: 'Updated student with faculty reference' });
+      try {
+        console.log("Updating student-faculty relationship");
+        const updatedStudent = await User.findByIdAndUpdate(
+          studentUser._id,
+          { facultyId: facultyUser._id },
+          { new: true }
+        );
+        
+        if (updatedStudent) {
+          console.log("Updated student with faculty reference");
+          results.push({ message: 'Updated student with faculty reference' });
+        }
+      } catch (updateError) {
+        console.error("Error updating student with faculty reference:", updateError);
+        results.push({ message: `Error updating student: ${updateError}` });
       }
     }
 
     if (studentUser) {
-      const parentUser = await User.findOne({ role: 'parent' });
-      if (parentUser && !parentUser.studentId) {
-        const updatedParent = await User.findByIdAndUpdate(
-          parentUser._id, 
-          { studentId: studentUser._id },
-          { new: true }
-        );
-        
-        if (updatedParent) {
-          results.push({ message: 'Updated parent with student reference' });
+      try {
+        console.log("Finding parent user");
+        const parentUser = await User.findOne({ role: 'parent' });
+        if (parentUser && !parentUser.studentId) {
+          console.log("Updating parent-student relationship");
+          const updatedParent = await User.findByIdAndUpdate(
+            parentUser._id, 
+            { studentId: studentUser._id },
+            { new: true }
+          );
+          
+          if (updatedParent) {
+            console.log("Updated parent with student reference");
+            results.push({ message: 'Updated parent with student reference' });
+          }
         }
+      } catch (updateError) {
+        console.error("Error updating parent with student reference:", updateError);
+        results.push({ message: `Error updating parent: ${updateError}` });
       }
     }
 
+    console.log("Seed process completed");
     return NextResponse.json({ 
       message: 'Demo users created successfully',
       results 
@@ -159,7 +232,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Seed error:', error);
     return NextResponse.json(
-      { message: 'An error occurred during seeding', error: String(error) },
+      { 
+        message: 'An error occurred during seeding', 
+        error: String(error),
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      },
       { status: 500 }
     );
   }

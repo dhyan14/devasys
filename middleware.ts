@@ -16,6 +16,17 @@ export async function middleware(request: NextRequest) {
 
   // If already authenticated, redirect away from login/register
   if (isPublicPath && token) {
+    try {
+      const payload = await verifyToken(token);
+      if (payload) {
+        const role = payload.role as string;
+        // Redirect to role-specific dashboard
+        return NextResponse.redirect(new URL(`/${role}/dashboard`, request.url));
+      }
+    } catch (error) {
+      console.error('Token verification error:', error);
+    }
+    // Fallback to generic dashboard if role verification fails
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
@@ -31,24 +42,29 @@ export async function middleware(request: NextRequest) {
 
     const role = payload.role as string;
 
+    // Dashboard redirection
+    if (path === '/dashboard') {
+      return NextResponse.redirect(new URL(`/${role}/dashboard`, request.url));
+    }
+
     // Admin routes
     if (path.startsWith('/admin') && role !== 'admin') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL(`/${role}/dashboard`, request.url));
     }
 
     // Faculty routes
     if (path.startsWith('/faculty') && role !== 'faculty') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL(`/${role}/dashboard`, request.url));
     }
 
     // Student routes
     if (path.startsWith('/student') && role !== 'student') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL(`/${role}/dashboard`, request.url));
     }
 
     // Parent routes
     if (path.startsWith('/parent') && role !== 'parent') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL(`/${role}/dashboard`, request.url));
     }
   }
 
