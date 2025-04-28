@@ -22,21 +22,24 @@ if (typeof EdgeRuntime === 'undefined') {
   }
 }
 
+// Define cache type interface
+interface MongooseCache {
+  conn: any | null;
+  promise: Promise<any> | null;
+}
+
 // Global type for mongoose cache
 declare global {
-  var mongoose: {
-    conn: any | null;
-    promise: Promise<any> | null;
-  };
+  var mongoose: MongooseCache | undefined;
 }
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://devloperasys:devloperasys@asys.6o7l3r1.mongodb.net/';
 
 // Initialize the cached connection
 // This will be skipped in Edge Runtime environments
-let cached = { conn: null, promise: null };
+let cached: MongooseCache = { conn: null, promise: null };
 if (typeof global !== 'undefined') {
-  cached = global.mongoose || { conn: null, promise: null };
+  cached = (global.mongoose as MongooseCache) || { conn: null, promise: null };
   if (!cached) {
     cached = global.mongoose = { conn: null, promise: null };
   }
