@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FiX } from 'react-icons/fi';
+import { FiX, FiCheck, FiAlertTriangle } from 'react-icons/fi';
 
 interface AddUserFormProps {
   onClose: () => void;
@@ -15,29 +15,42 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
     password: '',
     role: 'student',
     studentId: '',
-    facultyId: '',
+    facultyIds: [] as string[],
+    enrollmentNumber: '',
   });
   
   const [students, setStudents] = useState<any[]>([]);
   const [faculty, setFaculty] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [fetchStatus, setFetchStatus] = useState<'loading' | 'success' | 'error'>('loading');
   
   // Fetch students and faculty for relationships
   useEffect(() => {
     const fetchUsers = async () => {
+      setFetchStatus('loading');
       try {
         // Use relative URL for API calls that works both in development and production
+        console.log("Fetching users from API...");
         const response = await fetch('/api/admin/users');
+        
         if (response.ok) {
           const data = await response.json();
+          console.log(`Retrieved ${data.users.length} users from database`);
+          
           setStudents(data.users.filter((user: any) => user.role === 'student'));
           setFaculty(data.users.filter((user: any) => user.role === 'faculty'));
+          setFetchStatus('success');
         } else {
           console.error('Failed to fetch users:', response.status);
+          setFetchStatus('error');
+          setError(`Failed to fetch users: ${response.status}`);
         }
       } catch (err) {
         console.error('Error fetching users:', err);
+        setFetchStatus('error');
+        setError('Network error while fetching users');
       }
     };
     
@@ -51,13 +64,23 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
       [name]: value,
     }));
   };
+
+  const handleMultiSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const options = Array.from(e.target.selectedOptions, option => option.value);
+    setFormData(prev => ({
+      ...prev,
+      facultyIds: options
+    }));
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
     
     try {
+      console.log("Submitting form to create user in MongoDB...");
       // Use relative URL for API calls that works both in development and production
       const response = await fetch('/api/admin/users', {
         method: 'POST',
@@ -73,20 +96,28 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
         throw new Error(data.message || 'Failed to create user');
       }
       
-      // Reset form and notify parent component
-      setFormData({
-        name: '',
-        email: '',
-        password: '',
-        role: 'student',
-        studentId: '',
-        facultyId: '',
-      });
+      console.log("User created successfully in MongoDB:", data.user);
+      setSuccess(`User ${formData.name} (${formData.email}) was successfully added to MongoDB!`);
       
-      onSuccess();
-      onClose();
+      // Reset form and notify parent component
+      setTimeout(() => {
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          role: 'student',
+          studentId: '',
+          facultyIds: [],
+          enrollmentNumber: '',
+        });
+        
+        onSuccess();
+        onClose();
+      }, 2000); // Give user time to see success message
+      
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      console.error("Error while creating user:", err);
+      setError(err.message || 'An error occurred while saving to MongoDB');
     } finally {
       setLoading(false);
     }
@@ -106,8 +137,29 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
         </div>
         
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex items-center">
+            <FiAlertTriangle className="text-red-500 mr-2" />
+            <span>{error}</span>
+          </div>
+        )}
+        
+        {success && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 flex items-center">
+            <FiCheck className="text-green-500 mr-2" />
+            <span>{success}</span>
+          </div>
+        )}
+        
+        {fetchStatus === 'loading' && (
+          <div className="text-center py-4">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading user data from MongoDB...</p>
+          </div>
+        )}
+        
+        {fetchStatus === 'error' && (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+            <p>Unable to load existing users. Some features may be limited.</p>
           </div>
         )}
         
@@ -171,6 +223,46 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
             </select>
           </div>
           
+          {formData.role === 'student' && (
+            <>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Enrollment Number
+                </label>
+                <input
+                  type="text"
+                  name="enrollmentNumber"
+                  value={formData.enrollmentNumber}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  required
+                  placeholder="e.g., EN2023001"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Faculty Advisors
+                </label>
+                <select
+                  name="facultyIds"
+                  multiple
+                  value={formData.facultyIds}
+                  onChange={handleMultiSelectChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  size={3}
+                >
+                  {faculty.map((f) => (
+                    <option key={f._id} value={f._id}>
+                      {f.name} ({f.email})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd key to select multiple faculty advisors</p>
+              </div>
+            </>
+          )}
+          
           {formData.role === 'parent' && (
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -193,41 +285,28 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
             </div>
           )}
           
-          {formData.role === 'student' && (
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Faculty Advisor
-              </label>
-              <select
-                name="facultyId"
-                value={formData.facultyId}
-                onChange={handleChange}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              >
-                <option value="">None</option>
-                {faculty.map((f) => (
-                  <option key={f._id} value={f._id}>
-                    {f.name} ({f.email})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          
           <div className="flex items-center justify-end">
             <button
               type="button"
               onClick={onClose}
               className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2"
+              disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded"
+              className="bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded flex items-center"
               disabled={loading}
             >
-              {loading ? 'Creating...' : 'Create User'}
+              {loading ? (
+                <>
+                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-white rounded-full border-t-transparent"></div>
+                  <span>Saving to MongoDB...</span>
+                </>
+              ) : (
+                'Create User'
+              )}
             </button>
           </div>
         </form>

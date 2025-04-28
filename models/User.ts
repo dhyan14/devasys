@@ -10,7 +10,8 @@ export interface IUser {
   role: UserRole;
   profilePicture?: string;
   studentId?: Schema.Types.ObjectId; // For parent role
-  facultyId?: Schema.Types.ObjectId; // For student role (assigned faculty)
+  facultyIds?: Schema.Types.ObjectId[]; // For student role (assigned faculty advisors)
+  enrollmentNumber?: string; // For student role
 }
 
 const userSchema = new Schema<IUser>(
@@ -41,9 +42,12 @@ const userSchema = new Schema<IUser>(
       type: Schema.Types.ObjectId,
       ref: 'User',
     },
-    facultyId: {
+    facultyIds: [{
       type: Schema.Types.ObjectId,
       ref: 'User',
+    }],
+    enrollmentNumber: {
+      type: String,
     },
   },
   {

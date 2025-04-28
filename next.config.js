@@ -4,9 +4,9 @@ const nextConfig = {
   env: {
     MONGODB_URI: process.env.MONGODB_URI,
   },
-  // Remove from external packages since we're handling in webpack config
+  // External packages that should be handled by Node.js runtime
   experimental: {
-    serverComponentsExternalPackages: ['bcryptjs', 'jose']
+    serverComponentsExternalPackages: ['bcryptjs', 'jose', 'mongoose']
   },
   serverRuntimeConfig: {
     // Will only be available on the server side
