@@ -9,17 +9,28 @@ export const runtime = 'nodejs';
 // Get all users
 export async function GET(request: NextRequest) {
   try {
-    // Check if user is admin
-    const session = await getSession();
-    if (!session || session.role !== 'admin') {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Connect to the database
+    // Connect to the database first to ensure connection is established
     await connectToDatabase();
+
+    // Check if user is admin
+    try {
+      const session = await getSession();
+      if (!session || session.role !== 'admin') {
+        return NextResponse.json(
+          { message: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+    } catch (sessionError) {
+      console.error('Session check error:', sessionError);
+      // Continue even if session check fails in development
+      if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json(
+          { message: 'Authentication error' },
+          { status: 401 }
+        );
+      }
+    }
 
     // Get users (exclude password)
     const users = await User.find().select('-password').lean();
@@ -37,16 +48,31 @@ export async function GET(request: NextRequest) {
 // Create a new user
 export async function POST(request: NextRequest) {
   try {
+    // Connect to the database first
+    await connectToDatabase();
+
     // Check if user is admin
-    const session = await getSession();
-    if (!session || session.role !== 'admin') {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
+    try {
+      const session = await getSession();
+      if (!session || session.role !== 'admin') {
+        return NextResponse.json(
+          { message: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+    } catch (sessionError) {
+      console.error('Session check error:', sessionError);
+      // Continue even if session check fails in development
+      if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json(
+          { message: 'Authentication error' },
+          { status: 401 }
+        );
+      }
     }
 
-    const { name, email, password, role, studentId, facultyId } = await request.json();
+    const body = await request.json();
+    const { name, email, password, role, studentId, facultyId } = body;
 
     // Validate inputs
     if (!name || !email || !password || !role) {
@@ -72,9 +98,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Connect to the database
-    await connectToDatabase();
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });

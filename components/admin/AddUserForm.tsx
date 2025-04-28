@@ -27,11 +27,14 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
+        // Use relative URL for API calls that works both in development and production
         const response = await fetch('/api/admin/users');
         if (response.ok) {
           const data = await response.json();
           setStudents(data.users.filter((user: any) => user.role === 'student'));
           setFaculty(data.users.filter((user: any) => user.role === 'faculty'));
+        } else {
+          console.error('Failed to fetch users:', response.status);
         }
       } catch (err) {
         console.error('Error fetching users:', err);
@@ -55,6 +58,7 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
     setError('');
     
     try {
+      // Use relative URL for API calls that works both in development and production
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: {

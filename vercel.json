@@ -13,12 +13,14 @@
     }
   ],
   "env": {
-    "MONGODB_URI": "mongodb+srv://devloperasys:devloperasys@asys.6o7l3r1.mongodb.net/attendance-system"
+    "MONGODB_URI": "mongodb+srv://devloperasys:devloperasys@asys.6o7l3r1.mongodb.net/attendance-system",
+    "NEXT_PUBLIC_BASE_URL": "https://devasys.vercel.app"
   },
   "build": {
     "env": {
       "MONGODB_URI": "mongodb+srv://devloperasys:devloperasys@asys.6o7l3r1.mongodb.net/attendance-system",
-      "JWT_SECRET": "e654e574e8aa61f62a24b145ebad7fce36f17fbdf53120f91bf27434a4c7a2f9"
+      "JWT_SECRET": "e654e574e8aa61f62a24b145ebad7fce36f17fbdf53120f91bf27434a4c7a2f9",
+      "NEXT_PUBLIC_BASE_URL": "https://devasys.vercel.app"
     }
   }
 } 

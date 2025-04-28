@@ -3,7 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FiUser, FiUsers, FiCalendar, FiBook, FiSettings, FiPlus } from 'react-icons/fi';
-import AddUserForm from '@/components/admin/AddUserForm';
+import dynamic from 'next/dynamic';
+
+// Dynamically import the AddUserForm component to avoid build issues
+const AddUserForm = dynamic(() => import('../../../components/admin/AddUserForm'), {
+  ssr: false,
+});
 
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -34,6 +39,8 @@ export default function AdminDashboardPage() {
           totalCourses: 36, // Mocked data for now
           activeDepartments: 12, // Mocked data for now
         });
+      } else {
+        console.error('Failed to fetch users:', response.status);
       }
     } catch (err) {
       console.error('Error fetching users:', err);
