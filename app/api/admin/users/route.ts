@@ -161,4 +161,187 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+}
+
+// Delete a user
+export async function DELETE(request: NextRequest) {
+  try {
+    // Connect to database
+    await connectToDatabase();
+
+    // Check if user is admin
+    const session = await getSession();
+    if (!session?.user || session.user.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Unauthorized. Only admin can delete users.' },
+        { status: 401 }
+      );
+    }
+
+    // Get user ID from URL
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('id');
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required.' },
+        { status: 400 }
+      );
+    }
+
+    // Check if user is trying to delete themselves
+    if (session.user.id === userId) {
+      return NextResponse.json(
+        { error: 'You cannot delete your own account.' },
+        { status: 400 }
+      );
+    }
+
+    // Find and delete the user
+    const deletedUser = await User.findByIdAndDelete(userId);
+
+    if (!deletedUser) {
+      return NextResponse.json(
+        { error: 'User not found.' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ 
+      message: 'User deleted successfully',
+      userId
+    });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete user.' },
+      { status: 500 }
+    );
+  }
+}
+
+// Update an existing user
+export async function PUT(request: NextRequest) {
+  try {
+    // Connect to database
+    await connectToDatabase();
+
+    // Check if user is admin
+    const session = await getSession();
+    if (!session?.user || session.user.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Unauthorized. Only admin can update users.' },
+        { status: 401 }
+      );
+    }
+
+    // Get user ID from URL
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('id');
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required.' },
+        { status: 400 }
+      );
+    }
+
+    // Parse the request body
+    const updateData = await request.json();
+    const { name, email, role, password, profilePicture, studentId, facultyIds, enrollmentNumber } = updateData;
+
+    // Check if user exists
+    const existingUser = await User.findById(userId);
+    if (!existingUser) {
+      return NextResponse.json(
+        { error: 'User not found.' },
+        { status: 404 }
+      );
+    }
+
+    // Update fields
+    const updates: any = {};
+
+    if (name) updates.name = name;
+    if (email) {
+      // Check if new email is already in use by another user
+      if (email !== existingUser.email) {
+        const emailExists = await User.findOne({ email, _id: { $ne: userId } });
+        if (emailExists) {
+          return NextResponse.json(
+            { error: 'Email is already in use by another user.' },
+            { status: 400 }
+          );
+        }
+        updates.email = email;
+      }
+    }
+    
+    if (role) {
+      // Check if role is valid
+      if (!['admin', 'faculty', 'student', 'parent'].includes(role)) {
+        return NextResponse.json(
+          { error: 'Invalid role. Role must be admin, faculty, student, or parent.' },
+          { status: 400 }
+        );
+      }
+      updates.role = role;
+    }
+
+    if (password) {
+      updates.password = await hashPassword(password);
+    }
+
+    if (profilePicture !== undefined) {
+      updates.profilePicture = profilePicture;
+    }
+
+    // Handle role-specific fields
+    if (role === 'parent' && studentId) {
+      updates.studentId = studentId;
+    }
+
+    if (role === 'student') {
+      if (facultyIds) {
+        if (!Array.isArray(facultyIds)) {
+          return NextResponse.json(
+            { error: 'Faculty IDs must be an array.' },
+            { status: 400 }
+          );
+        }
+        updates.facultyIds = facultyIds;
+      }
+
+      if (enrollmentNumber) {
+        // Check if enrollment number is unique
+        const existingEnrollment = await User.findOne({ 
+          enrollmentNumber, 
+          _id: { $ne: userId } 
+        });
+        
+        if (existingEnrollment) {
+          return NextResponse.json(
+            { error: 'User with this enrollment number already exists.' },
+            { status: 400 }
+          );
+        }
+        updates.enrollmentNumber = enrollmentNumber;
+      }
+    }
+
+    // Update the user
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updates },
+      { new: true }
+    ).select('-password');
+
+    return NextResponse.json(updatedUser);
+  } catch (error) {
+    console.error('Error updating user:', error);
+    return NextResponse.json(
+      { error: 'Failed to update user.' },
+      { status: 500 }
+    );
+  }
 } 
