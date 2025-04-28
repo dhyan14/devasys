@@ -3,6 +3,8 @@ import { connectToDatabase } from '@/lib/db';
 import { Leave } from '@/models/Leave';
 import { getUserFromRequest } from '@/lib/auth';
 
+export const runtime = 'nodejs';
+
 // Get leave applications
 export async function GET(request: NextRequest) {
   try {
