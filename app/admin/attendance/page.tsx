@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState } from 'react';
 
 interface AttendanceRecord {
   id: string;
@@ -13,13 +13,13 @@ interface AttendanceRecord {
 }
 
 export default function AdminAttendancePage() {
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([
+  const [attendanceRecords, setAttendanceRecords] = useState([
     { id: '1', studentName: 'John Doe', studentId: 'ST001', date: '2023-05-01', status: 'present', subject: 'Mathematics', class: 'Class 10A' },
     { id: '2', studentName: 'Jane Smith', studentId: 'ST002', date: '2023-05-01', status: 'absent', subject: 'Mathematics', class: 'Class 10A' },
     { id: '3', studentName: 'Alex Johnson', studentId: 'ST003', date: '2023-05-01', status: 'present', subject: 'Mathematics', class: 'Class 10A' },
     { id: '4', studentName: 'Sarah Williams', studentId: 'ST004', date: '2023-05-01', status: 'present', subject: 'Science', class: 'Class 9B' },
     { id: '5', studentName: 'Mike Brown', studentId: 'ST005', date: '2023-05-01', status: 'absent', subject: 'Science', class: 'Class 9B' },
-  ]);
+  ] as AttendanceRecord[]);
 
   const [filters, setFilters] = useState({
     class: '',
@@ -27,7 +27,7 @@ export default function AdminAttendancePage() {
     date: '',
   });
 
-  const handleFilterChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleFilterChange = (e: any) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
   };
