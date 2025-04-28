@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
+export const runtime = 'nodejs';
+
 export const metadata: Metadata = {
   title: 'University Attendance System',
   description: 'A comprehensive attendance management system for universities',

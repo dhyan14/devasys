@@ -5,6 +5,8 @@ import { NextRequest } from 'next/server';
 import { User } from '@/models/User';
 import { connectToDatabase } from './db';
 
+export const runtime = 'nodejs';
+
 const secretKey = new TextEncoder().encode(process.env.JWT_SECRET || 'default_secret_key_change_this_in_production');
 const key = { kty: 'oct', k: Buffer.from(secretKey).toString('base64') };
 

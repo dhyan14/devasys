@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyToken } from './lib/auth';
 
+export const runtime = 'nodejs';
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isPublicPath = path === '/login' || path === '/register';
@@ -53,6 +55,7 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
+// See https://nextjs.org/docs/app/building-your-application/routing/middleware
 export const config = {
   matcher: [
     '/dashboard/:path*',
