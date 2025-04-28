@@ -2,6 +2,35 @@
 
 declare module 'react';
 declare module 'react-datepicker';
+
+// Fix for react-icons
+declare module 'react-icons/fi' {
+  // Define icon props that include className
+  export interface IconBaseProps {
+    size?: string | number;
+    color?: string;
+    title?: string;
+    className?: string;
+    style?: React.CSSProperties;
+    attr?: React.SVGAttributes<SVGElement>;
+  }
+
+  export type IconType = React.FC<IconBaseProps>;
+
+  export const FiEdit2: IconType;
+  export const FiTrash2: IconType;
+  export const FiUserPlus: IconType;
+  export const FiSearch: IconType;
+  export const FiCalendar: IconType;
+  export const FiUsers: IconType;
+  export const FiUserCheck: IconType;
+  export const FiUserX: IconType;
+  export const FiBook: IconType;
+  export const FiX: IconType;
+  export const FiCheck: IconType;
+  export const FiSave: IconType;
+}
+
 declare module 'react-icons/*';
 declare module 'next/link';
 declare module 'react-hot-toast';
