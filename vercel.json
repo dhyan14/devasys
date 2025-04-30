@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "env": {
+    "NEXTAUTH_URL": "${VERCEL_URL}",
+    "NEXTAUTH_SECRET": "f76180dfdd84eb258b49b04e953024ccc1336d7e0e18190c404e0c609ad94223",
+    "DATABASE_URL": "mongodb+srv://devloperasys:devloperasys@asys.6o7l3r1.mongodb.net/attendance_system?retryWrites=true&w=majority&appName=asys",
+    "GOOGLE_SERVICE_ACCOUNT_EMAIL": "",
+    "GOOGLE_PRIVATE_KEY": "",
+    "GOOGLE_SPREADSHEET_ID": ""
+  },
+  "buildCommand": "npx prisma generate && npm run build",
+  "framework": "nextjs"
+} 
